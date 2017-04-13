@@ -14,9 +14,15 @@ namespace SearchCustomerOrders
             String eingabe = String.Empty;
             Boolean ende = true;
             double zwischenSpeicher = 0.0;
-            decimal withoutDiscount = 0;
-            double withDiscount = 0.0;
+            decimal wDiscount = 0;
+            decimal woDiscount = 0;
+            double sumWDiscount = 0.0;
+            double sumWoDiscount = 0.0;
             double discount = 0.0;
+            double totalDiscount = 0.0;
+            
+           
+            double total = 0.0;
 
 
 
@@ -75,38 +81,68 @@ namespace SearchCustomerOrders
                                 Console.WriteLine("\nAlle Bestellungen zugehörig der CustomerID:");
                             }
 
+                            foreach (var item in customer)
+                            {                
+
+                                var orderid = db.Order_Details.Where(x => x.OrderID == item.OrderID);
+                                var withDiscount = orderid.Where(x => x.Discount > 0);
+                                var withoutDiscount = orderid.Where(x => x.Discount == 0);
+
+                                if (withDiscount.Count() != 0)
+                                {
+                                    if (withDiscount.Count() > 1)
+                                    {
+
+                                        for (int i = 0; i < withDiscount.Count(); i++)
+                                        {
+                                            var test = withDiscount.OrderBy(x => x.OrderID).Skip(i).Take(1);
+                                            wDiscount = test.Sum(x => x.UnitPrice * x.Quantity);
+                                            zwischenSpeicher = Convert.ToDouble(wDiscount);
+                                            discount = test.Sum(x => zwischenSpeicher * x.Discount);
+                                            sumWDiscount = test.Sum(x => zwischenSpeicher - discount);
+                                            totalDiscount = totalDiscount + sumWDiscount;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        wDiscount = withDiscount.Sum(x => x.UnitPrice * x.Quantity);
+                                        zwischenSpeicher = Convert.ToDouble(wDiscount);
+                                        discount = withDiscount.Sum(x => zwischenSpeicher * x.Discount);
+                                        sumWDiscount = withDiscount.Sum(x => zwischenSpeicher - discount);
+                                        totalDiscount = totalDiscount + sumWDiscount;
+                                    }
+                                }
+
+                                if (withoutDiscount.Count() != 0)
+                                {
+                                    woDiscount = withoutDiscount.Sum(x => x.UnitPrice * x.Quantity);
+                                    sumWoDiscount = Convert.ToDouble(woDiscount);
+                                }
+
+                                total = totalDiscount + sumWoDiscount;
+
+                                Console.WriteLine("{0}\t {1}\t {2}\t {3:0.00}", item.OrderID, item.ShipName, item.ShipAddress, total);
+
+                                sumWoDiscount = 0.0;
+                                totalDiscount = 0.0;
+                            }
+
+                            Console.Write("Geben Sie eine der oben stehenden OrderID ein, um die genauen Details der Bestellung anzusehen.\t");
+                            eingabe = Console.ReadLine();
+                            int test1 = Convert.ToInt32(eingabe);
+
+                            var bestellungen = db.Order_Details.Where(x => x.ProductID == test1);
+                            var products = bestellungen.Select(x => x.ProductID);
                             
 
-                            foreach (var item in customer)
-                            {
+                            
 
-                                //var orderid = db.Order_Details.Where(x => x.OrderID == item.OrderID);
-                                //var total = orderid.Sum(x => x.UnitPrice * x.Quantity);
-                                //var test = Convert.ToDouble(total);
-                                //var total1 = orderid.Sum(x => test / (x.Discount / 100));
-
-                                var orderid = db.Order_Details.Where(x => x.OrderID == item.OrderID);   
-                                
-                                                             
-                                withoutDiscount = orderid.Sum(x => x.UnitPrice * x.Quantity);                                
-                                zwischenSpeicher = Convert.ToDouble(withoutDiscount);
-
-
-                                discount = orderid.Sum(x => zwischenSpeicher * x.Discount);
-
-                                if (discount != 0)
-                                {
-                                    withDiscount = orderid.Sum(x => zwischenSpeicher - discount);
+                           
 
 
 
-                                    Console.WriteLine("{0}\t {1}\t {2}\t {3:0.00}", item.OrderID, item.ShipName, item.ShipAddress, withDiscount);
-                                }
-                                else
-                                {
-                                    Console.WriteLine("{0}\t {1}\t {2}\t {3:0.00}", item.OrderID, item.ShipName, item.ShipAddress, withoutDiscount);
-                                }
-                            }
+
+
                         }
                         break;
                     case "3":
